@@ -13,6 +13,13 @@
 <img src="Images/端到端.png" width="500" align="center"/>
 </center>
 
+## 主要产出
+
+- 复现模型
+- 搭建框架
+- 应用场景
+- 优化方案
+
 
 ## 模型复现
 
