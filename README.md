@@ -166,8 +166,31 @@ class ts_stddev(nn.Module):
 
 ### LSTM层
 
-- 为什么选择lstm？
+经过特征提取层得到的特征仍然具有时序信息，所以我们需要用像 **LSTM** 这样的网络结构来捕捉特种中的时序信息。
+
+<center>
+<img src="Images/时序信息.png" width="400" align="center"/>
+</center>
+
 - lstm怎么捕捉时序信息？
+
+代码实现：
+
+```python
+# 初始化LSTM层和批量归一化层
+self.lstm = nn.LSTM(n_in, 30, 1, batch_first=True)
+self.bn = nn.BatchNorm1d(30)
+
+# LSTM + 批量归一化
+features, _ = self.lstm(features)
+features = features.transpose(1,2)
+features = self.bn(features)
+features = features.transpose(1,2)
+         
+# 取LSTM最后一个时间步的隐藏状态作为最后的特征
+features = features[:, -1, :]
+```
+
 
 ### 输出层
 
