@@ -174,21 +174,19 @@ class ts_stddev(nn.Module):
 
 - lstm怎么捕捉时序信息？
 
-代码实现：
-
-```python
-self.lstm = nn.LSTM(n_in, 30, 1, batch_first=True)
-```
-
 
 ### 输出层
 
 输出层是简单的全连接层，通过对输入特征做加权和的方式，输出一个预测值。
 
-代码实现：
-
-```python
-self.output_layer = nn.Linear(n_in, 1)
-```
+完整的特征提取层和模型，请参考 **models.py** 文件。
 
 
+## 框架搭建
+
+- 训练框架
+- 预测框架
+
+## 应用场景
+
+## 优化方案
