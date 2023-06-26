@@ -177,21 +177,18 @@ class ts_stddev(nn.Module):
 代码实现：
 
 ```python
-# 初始化LSTM层和批量归一化层
 self.lstm = nn.LSTM(n_in, 30, 1, batch_first=True)
-self.bn = nn.BatchNorm1d(30)
-
-# LSTM + 批量归一化
-features, _ = self.lstm(features)
-features = features.transpose(1,2)
-features = self.bn(features)
-features = features.transpose(1,2)
-         
-# 取LSTM最后一个时间步的隐藏状态作为最后的特征
-features = features[:, -1, :]
 ```
 
 
 ### 输出层
+
+输出层是简单的全连接层，通过对输入特征做加权和的方式，输出一个预测值。
+
+代码实现：
+
+```python
+self.output_layer = nn.Linear(n_in, 1)
+```
 
 
