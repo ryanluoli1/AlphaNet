@@ -33,7 +33,7 @@
 
 股票数据虽然是时间序列数据，直观上用**RNN**（循环神经网络）等传统时序模型对其进行建模会比较有效。但是RNN的递归运算方式过于单一，很难有效地提取到股票数据中较为复杂的特征。
 
-所以，AlphaNet借鉴了计算机视觉领域中最具影响力的**CNN**（卷积神经网络）网络的工作原理，将个股日频量价数据转换为 “数据图片”，然后通过一种类似卷积的计算方式来提取特征。
+所以，AlphaNet借鉴了计算机视觉领域中最具影响力的**CNN**（卷积神经网络）网络的工作原理，将个股日频量价数据转换为 **`“数据图片”`**，然后通过一种类似卷积的计算方式来提取特征。
 
 <center>
 <img src="Images/数据图片.png" width="450" align="center"/>
@@ -49,8 +49,116 @@ CNN中传统的卷积计算有2个问题：
 1. 是基于局部感知的，和输入数据的排布方式有很大关系，然而股票数据和图片不一样，没有固定的排布方式，因此不同的排布方式很有可能会影响模型的效果
 2. 本质上只是计算固定特征数据的加权组合，极大程度上限制了因子表达式的可能性
 
-因此，AlphaNet引入了自定义的特征提取层，通过多种运算符函数，以提取 “数据图片” 中的信息。
+因此，AlphaNet引入了自定义的特征提取层，通过多种**运算符函数**，并通过**完整遍历**的方式，更加丰富且全面地提取 “数据图片” 中的信息。
 
+<center>
+<img src="Images/特征提取.png" width="650" align="center"/>
+</center>
+
+自定义的特征提取函数可以分为两大类：双变量函数和单变量函数。
+
+例如 **`ts_corr(X, Y, 3)`** 就是双变量函数，对 “数据图片” 中的所有特征进行两两遍历匹配，计算两个窗口之间的相关度：
+
+<center>
+<img src="Images/双变量卷积.png" width="650" align="center"/>
+</center>
+
+代码实现：
+
+```python
+class ts_corr(nn.Module):
+    """
+    计算过去 d 天 X 值构成的时序数列和 Y 值构成的时序数列的相关系数
+    """
+
+    def __init__(self, d=10, stride=10):
+        """
+        d: 计算窗口的天数
+        stride：计算窗口在时间维度上的进步大小
+        """
+        super(ts_corr, self).__init__()
+        self.d = d
+        self.stride = stride
+
+    def forward(self, X):
+
+        # n-特征数量，T-时间窗口
+        batch_size, n, T = X.shape
+
+        # 初始化输出特征图
+        w = int((T - self.d) / self.stride + 1)
+        h = int(n * (n - 1) / 2)
+        Z = torch.zeros(batch_size, h, w)
+
+        # 遍历每个batch
+        for batch in range(batch_size):
+            # 主窗口：i 确定时间维度位置，j 确定特征维度位置
+            for i in range(w):
+                z = []
+                start = i * self.stride
+                end = start + self.d
+                for j in range(n - 1):
+                    # 主窗口
+                    x = X[batch, j, start:end]
+                    # 剩余窗口
+                    y = X[batch, j + 1:, start:end]
+                    # 计算两个窗口之间的相关系数
+                    broadcasted_x = x.expand(len(y), -1)
+                    r = pearsonr(broadcasted_x, y)
+                    z.append(r)
+
+                # 更新特征图
+                Z[batch, :, i] = torch.cat(z, dim=0).T
+
+        return Z
+```
+
+而 **`ts_stddev(X, 3)`** 就是单变量函数，会遍历 “数据图片” 中的所有特征窗口，计算窗口内数据的方差：
+
+<center>
+<img src="Images/方差特征.png" width="650" align="center"/>
+</center>
+
+代码实现：
+
+```python
+class ts_stddev(nn.Module):
+    """
+    过去 d 天 X 值构成的时序数列的标准差
+    """
+
+    def __init__(self, d=10, stride=10):
+        """
+        d: 计算窗口的天数
+        stride：计算窗口在时间维度上的进步大小
+        """
+        super(ts_stddev, self).__init__()
+        self.d = d
+        self.stride = stride
+
+    def forward(self, X):
+
+        # n-特征数量，T-时间窗口  
+        batch_size, n, T = X.shape
+
+        # 初始化输出特征图
+        w = int((T - self.d) / self.stride + 1)
+        Z = torch.zeros(batch_size, n, w)
+
+        # 遍历每个batch
+        for batch in range(batch_size):
+            # 窗口：i 确定时间维度位置
+            for i in range(w):
+                start = i * self.stride
+                end = start + self.d
+                x = X[batch, :, start:end]
+                # 计算窗口的方差
+                std = torch.std(x, dim=1)
+                # 更新特征图
+                Z[batch, :, i] = std
+              
+        return Z
+```
 
 ### 特征提取层
 
