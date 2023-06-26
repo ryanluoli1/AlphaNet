@@ -229,17 +229,75 @@ LSTM网络利用记忆门控机制，有效筛选每个时间步内的重要信�
 <img src="Images/原始数据.png" width="500" align="center"/>
 </center>
 
-在进行数据处理之前：共计10127535条数据，5324支股票，2996个交易日。
+在进行数据处理之前：共计10127535条数据，5324支股票，2996个交易日。为了防止非正常股票影响模型训练效果，我们剔除了ST（特殊处理股票）股票、PT（特别转让股）股票、预测目标日期下一交易日涨跌停的股票，最后剩余1098484条数据，1194支股票。
 
-为了防止非正常股票影响模型训练效果，我们对数据进行了以下筛选：
+接下来，我们通过原始特征，构建了6个比率类特征，以此来获得更丰富的信息：
 
-1. 剔除ST（特殊处理股票）和PT（特别转让股）股票：剩余9456786条数据，5160支股票
-2. 剔除预测目标日期下一交易日涨跌停股票：剩余1098484条数据，1194支股票
-3. 剔除空值和异常值：无
+<center>
+<img src="Images/比率类特征.png" width="600" align="center"/>
+</center>
 
+然后，为了防止模型被不同特征数值规模之间较大的差异影响，我们对每一个特征都分别做了归一化处理：
 
+```python
+# 对每个特征分别进行归一化（除了股票代码、日期和标签）
+for feature in df.columns[2:-1]:
+    df[feature] = (df[feature] - df[feature].mean()) / df[feature].std()
+```
 
+最后，我们通过每隔10个交易日采一次样的方式，构建 “数据图片” 和对应的标签：
 
+```python
+X, Y, Y_dates, empty = [], [], [], []
+
+for code in tqdm(df_merged['code'].unique()):
+    
+    x, y, dates = [], [], []
+    
+    # 每个个股单独采样
+    df = df_merged[df_merged['code']==code]
+    
+    i = 0
+    while i + 40 < len(df):
+        
+        # 标签对应的日期
+        date = df.iloc[i+40]['date']
+        dates.append(date)
+        
+        # 特征：30天的历史窗口，构建 ”数据图片“
+        window = df.iloc[i:i+30, 1:-1]
+        window.set_index('date', inplace=True)
+        window = window.transpose()
+        x.append(np.array(window))
+        
+        # 标签：第i+40天的收益率
+        y.append(df.iloc[i+40]['target'])
+        
+        # 每间隔10个交易日采样一次
+        i += 10
+    
+    # 如果该个股的数据不够，跳过
+    if not x or not y:
+        empty.append(code)
+        continue
+    
+    # 将该个股的所有的 样本-标签 组合加入到数据集中
+    x = np.stack(x)
+    y = np.stack(y)
+    y_dates = np.stack(dates)
+    X.append(x)
+    Y.append(y)
+    Y_dates.append(y_dates)
+
+# 根据标签日期对数据集进行排序
+Y_dates = np.concatenate(Y_dates, axis=0)
+order = np.argsort(Y_dates)
+X = np.concatenate(X, axis=0)[order]
+Y = np.concatenate(Y, axis=0)[order]
+Y_dates = Y_dates[order]
+```
+
+**具体代码实现，请看 数据准备(FE).ipynb 和 构建数据集.ipynb 文件**
 
 ***
 
