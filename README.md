@@ -264,7 +264,7 @@ for code in tqdm(df_merged['code'].unique()):
         date = df.iloc[i+40]['date']
         dates.append(date)
         
-        # 特征：30天的历史窗口，构建 ”数据图片“
+        # 特征：30天的历史窗口，构建 “数据图片”
         window = df.iloc[i:i+30, 1:-1]
         window.set_index('date', inplace=True)
         window = window.transpose()
@@ -302,6 +302,22 @@ Y_dates = Y_dates[order]
 ***
 
 ### 模型训练框架
+
+首先，我们选择用CPU来训练模型，因为特征提取层的计算无法完全矩阵化，所以使用CPU训练会比GPU更快：
+
+```python
+device = torch.device("cpu")
+```
+
+为了模拟真实的情况，我们采用滚动训练法，让模型在时间轴上每隔半年滚动训练一次：
+
+<center>
+<img src="Images/滚动训练.png" width="750" align="center"/>
+</center>
+
+
+
+
 
 ***
 
