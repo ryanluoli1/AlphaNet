@@ -15,15 +15,16 @@
 
 ## 主要产出
 
-- 复现模型
-- 搭建框架
-- 应用场景
-- 优化方案
+- [模型复现](#1)：从0开始复现AlphaNet模型
+- [搭建框架](#2)：搭建模型的训练、预测和检验框架
+- 应用场景：探索模型在2种不同场景下的应用
+- 优化方案：提出并验证2种不同角度的优化方法
 
 
+<a id="1"></a>
 ## 模型复现
 
-这里我们考虑的模型，指的是 [`AlphaNet-v2`](https://bigquant.com/wiki/doc/rengongzhineng-xilie-AlphaNet-jiegou-tezheng-zhengquan-20200824-gZhImiZjLC)，即华泰金工在提出最初的AlphaNet模型后2个月发布的改进版。
+（这里的模型指的是 [`AlphaNet-v2`](https://bigquant.com/wiki/doc/rengongzhineng-xilie-AlphaNet-jiegou-tezheng-zhengquan-20200824-gZhImiZjLC)，即华泰金工在提出最初的AlphaNet模型后2个月发布的改进版）
 
 模型的结构：
 
@@ -36,6 +37,7 @@
 <img src="Images/net_lstm.png" width="600" align="center"/>
 </center>
 
+***
 
 ### 数据输入
 
@@ -49,6 +51,7 @@
 
 “数据图片” 的纵向是特征维度，横向是时间维度。如上图的第一行则是：某只个股，在为期30天的历史回看窗口区间内，每天的开盘价数值。
 
+***
 
 ### 特征提取层
 
@@ -170,6 +173,7 @@ class ts_stddev(nn.Module):
 
 剩下的自定义特征提取层的计算逻辑和上面两种框架基本一致，只是需要根据函数的定义改变一下实际计算的值。
 
+***
 
 ### LSTM层
 
@@ -179,8 +183,7 @@ class ts_stddev(nn.Module):
 <img src="Images/时序信息.png" width="400" align="center"/>
 </center>
 
-- lstm怎么捕捉时序信息？
-
+***
 
 ### 输出层
 
@@ -189,6 +192,7 @@ class ts_stddev(nn.Module):
 完整的特征提取层和模型，请参考 **models.py** 文件。
 
 
+<a id="2"></a>
 ## 框架搭建
 
 - 训练框架
