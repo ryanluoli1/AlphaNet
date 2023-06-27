@@ -531,7 +531,7 @@ criterion = nn.BCELoss()
 模型效果：
 
 <center>
-<img src="Images/v2_cls_results.png" width="500" align="center"/>
+<img src="Images/v2_cls_results.png" width="600" align="center"/>
 </center>
 
 正如我们所期待的，模型在识别超额收益股任务上的表现会比在挖掘选股因子任务上的表现要优异，原因可能是：
@@ -569,7 +569,7 @@ for feature in df.columns[2:11]:
 模型效果对比：
 
 <center>
-<img src="Images/fe_results.png" width="500" align="center"/>
+<img src="Images/fe_results.png" width="600" align="center"/>
 </center>
 
 
