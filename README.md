@@ -360,17 +360,65 @@ y_preds = net(X).squeeze().detach().numpy()
 <img src="Images/v2_贴合.png" width="500" align="center"/>
 </center>
 
+（**具体代码实现，请看 预测框架.ipynb 文件**）
+
 ***
 
 ### 模型回测框架
 
 在因子构建任务中，除了观察模型预测值与真实值之间的相似度，我们还需要对模型挖掘出来的因子进行回测，以验证因子的有效性。
 
-对于选股因子来说，最常见的回测方式就是单因子测试：
+对于选股因子来说，最常见的回测方式就是单因子IC回测，通过计算 **RankIC (Rank Information Coefficient)** 来衡量选股因子与股票收益排名之间的相关性的指标，从而评估选股因子的有效性和稳定性。
 
+计算RankIC的步骤如下：
 
+1. 对于每个时间点，根据选股因子的值对股票进行排名，得到每个股票在因子上的排名值
+2. 对于每个时间点，根据股票的实际收益对股票进行排名，得到每个股票在收益上的排名值
+3. 计算因子排名和收益排名之间的相关性，可以使用秩相关系数或皮尔逊相关系数，即为当下时间点的RankIC
+4. 对所有时间点的RankIC进行统计分析，例如：计算平均值、标准差、假设检验等
 
+代码实现：
 
+```python
+import scipy.stats as stats
+
+def compute_RankIC(X, Y, model, target_dates):
+
+    results = []
+    unique_dates = np.unique(target_dates)
+    
+    # 针对每个目标日期，对比当天真的股票收益率排名和预测的排名
+    for date in tqdm(unique_dates):
+        
+        # 获取当日所有股票的信息
+        idx = np.where(target_dates==date)[0]
+        
+        # 当日小于20支股票，跳过该日
+        if len(idx) < 20:
+            continue
+        
+        # 预测个股收益率值
+        model.eval()
+        y_preds = -model(torch.tensor(X[idx]).float()).squeeze().detach().numpy()
+        
+        # 计算排名
+        y_rank = np.argsort(Y[idx]).argsort() + 1
+        y_pred_rank = np.argsort(y_preds).argsort() + 1
+        
+        # 计算排名之间的相关度
+        correlation, _ = stats.spearmanr(y_rank, y_pred_rank)
+        results.append(correlation)
+        
+    return np.array(results)
+```
+
+以模型预测出来的个股收益率作为选股因子为例，模型在最后一个训练轮次中，测试集单因子IC回测的效果如下：
+
+<center>
+<img src="Images/v2_回测.png" width="600" align="center"/>
+</center>
+
+（**具体代码实现，请看 回测框架.ipynb 文件**）
 
 
 ## 应用探索
