@@ -320,10 +320,10 @@ device = torch.device("cpu")
 - 稳定/鲁棒性：在时序数据中，可能存在噪声、季节性变化、周期性变化等影响因素，滚动训练可以使模型在不同时间点上观察到这些变化，并逐渐适应和学习这些模式
 - 泛化能力：滚动训练可以让模型在每个时间步上都进行训练和预测，使其能够适应不同时间点上的数据分布和特征，减少模型对特定时间点上数据分布的依赖
 
-训练效果，观察模型在训练集和验证集上的表现：
+以预测个股收益率任务为例，训练模型，并观察模型在训练集和验证集上的表现：
 
 <center>
-<img src="Images/v2_train_results.png" width="550" align="center"/>
+<img src="Images/v2_train_results.png" width="450" align="center"/>
 </center>
 
 可以从图中看出，模型的收敛效果还是比较可观的。同时，模型在训练和验证集上的损失逐渐贴合，并没有出现过拟合的现象。
@@ -333,6 +333,44 @@ device = torch.device("cpu")
 ***
 
 ### 模型预测框架
+
+初始化模型，从本地导入训练好的模型参数：
+
+```python
+model_path = 'Models/alphanet_v2_0.pt'
+net = AlphaNet_v2(d=10, stride=10, n=15)
+load_model(net, model_path)
+```
+
+使用模型对新数据做预测：
+```python
+net.eval()
+y_preds = net(X).squeeze().detach().numpy()
+```
+
+同样以预测个股收益率为例，展示最后一轮的训练集前150个样本的预测结果：
+
+<center>
+<img src="Images/v2_predictions.png" width="500" align="center"/>
+</center>
+
+可以观察到，模型的预测值的波动明显要比真实值的波动大很多。但是，也能发现很多处预测值非常贴合真实值走势的区域：
+
+<center>
+<img src="Images/v2_贴合.png" width="500" align="center"/>
+</center>
+
+***
+
+### 模型回测框架
+
+在因子构建任务中，除了观察模型预测值与真实值之间的相似度，我们还需要对模型挖掘出来的因子进行回测，以验证因子的有效性。
+
+对于选股因子来说，最常见的回测方式就是单因子测试：
+
+
+
+
 
 
 ## 应用探索
