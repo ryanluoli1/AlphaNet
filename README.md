@@ -464,7 +464,79 @@ def compute_RankIC(X, Y, model, target_dates):
 
 因此，我们决定探索模型是否有能力找出一些在固定日期会获得超额收益的股票，即：超额收益股识别。
 
-我们把
+首先，我们需要定义这个任务对应的标签：个股在某个日期是否为超额收益股（0:不是，1:是），是一个二分类任务。我们通过判断在某个日期某个股的收益率是否大于当日市场上所有股票的收益率均值，来确定该个股在该日期的标签。
+
+```python
+# 构建超额收益标签：判断个股在对应日期的收益率是否超过当天的市场均值，超过则标签为1，否则为0
+
+memo = {}
+Y_cls = []
+
+for i in tqdm(range(len(Y))):
+    
+    # 目标日期
+    date = Y_dates[i]
+    
+    # 获取当天的市场收益率均值
+    if date in memo:
+        avg = memo[date]
+    else:
+        avg = df_merged[df_merged['date']==date]['target'].mean()
+        memo[date] = avg
+    
+    # 判断标签取值
+    if Y[i] > avg:
+        Y_cls.append(1)
+    else:
+        Y_cls.append(0)
+```
+
+为了评估模型效果，我们采用了4种针对分类任务设计的评估指标：
+
+```python
+# 计算准确率
+def compute_accuracy(y_true, y_pred):
+    assert (len(y_true) == len(y_pred))
+    return accuracy_score(np.array(y_true), np.array(y_pred))
+
+# 计算f1-score
+def compute_f1(y_true, y_pred):
+    assert (len(y_true) == len(y_pred))
+    return f1_score(np.array(y_true), np.array(y_pred))
+
+# 计算MCC
+def compute_MCC(y_true, y_pred):
+    assert (len(y_true) == len(y_pred))
+    return matthews_corrcoef(np.array(y_true), np.array(y_pred))
+
+# 计算4种指标
+def evaluate_metrics(preds, labels):
+    labels = [int(item) for item in labels]
+    preds = [0 if item < 0.5 else 1 for item in preds]
+    accuracy = compute_accuracy(labels, preds)
+    f1 = compute_f1(labels, preds)
+    mcc = compute_MCC(labels, preds)
+    cm = confusion_matrix(labels, preds)
+    return accuracy, f1, mcc, cm
+```
+
+我们对模型最后的数值输出进行了sigmoid函数处理（将数值压缩到0-1的区间，代表该个股在该日期为超额收益股的可能性），并采用了交叉熵作为训练的损失函数：
+
+```python
+# 初始化输出处理层（Sigmoid函数）、损失函数和优化器
+f = nn.Sigmoid()
+criterion = nn.BCELoss()
+```
+
+模型效果：
+
+<center>
+<img src="Images/v2_cls_results.png" width="500" align="center"/>
+</center>
+
+正如我们所期待的，模型在识别超额收益股任务上的表现会比在挖掘选股因子任务上的表现要优异，原因可能是：
+- 二分类任务本身比较简单
+- 模型对高收益率敏感，为什么呢？
 
 
 
